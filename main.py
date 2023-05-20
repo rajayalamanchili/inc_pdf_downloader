@@ -15,4 +15,4 @@ def get_config(filename):
 
 config_data = get_config(config_filename)
 
-print(config_data)
+print(config_data["secrets"])
