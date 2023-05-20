@@ -58,7 +58,7 @@ def getPolicyDetails(auth_home_page):
     
     # combine data
     policy_details = {"policy_numbers": policy_numbers, \
-                      "policy_nicknames": policy_nicknames, \
+                      "policy_nicknames": [policy_nicknames[i].replace("\n","").replace(",","|") for i in range(len(policy_nicknames))], \
                       "policy_premiums": [policy_premiums_periods[i] for i in range(0,len(policy_premiums_periods),2)], \
                       "policy_periods": [policy_premiums_periods[i].replace("\xa0-\xa0","-") for i in range(1,len(policy_premiums_periods),2)]}
 
@@ -79,7 +79,7 @@ def getAllPolicyDetailsDownloadPDF(page, url):
     policyDetailsDict = getPolicyDetails(auth_home_page)
 
     # print(policyDetails)
-    pd.DataFrame(policyDetailsDict).to_csv("policy_details.csv")
+    pd.DataFrame(policyDetailsDict).to_csv("policy_details.csv", index=False)
 
 
     # # download policy details docs
