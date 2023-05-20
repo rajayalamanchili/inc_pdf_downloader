@@ -3,6 +3,7 @@
 # sudo pip install pytest-playwright
 # sudo playwright install
 # sudo playwright install-deps
+# sudo pip install pandas
 
 from playwright.sync_api import sync_playwright
 

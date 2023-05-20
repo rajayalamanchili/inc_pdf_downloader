@@ -1,5 +1,6 @@
 import json
 import re
+import pandas as pd
 from playwright.sync_api import sync_playwright, expect
 
 
@@ -54,14 +55,12 @@ def getPolicyDetails(auth_home_page):
     
     # extract premiums and periods
     policy_premiums_periods = auth_home_page.locator(".policy-info-value").all_inner_texts()
-    policy_premiums_periods = [[policy_premiums_periods[i],policy_premiums_periods[i+1].replace("\xa0-\xa0","-")] \
-                               for i in range(0,len(policy_premiums_periods),2) ]
-
+    
     # combine data
-    policy_details = [[policy_numbers[policy],\
-                       policy_nicknames[policy],\
-                       policy_premiums_periods[policy][0],\
-                       policy_premiums_periods[policy][1]] for policy in range(len(policy_numbers))]
+    policy_details = {"policy_numbers": policy_numbers, \
+                      "policy_nicknames": policy_nicknames, \
+                      "policy_premiums": [policy_premiums_periods[i] for i in range(0,len(policy_premiums_periods),2)], \
+                      "policy_periods": [policy_premiums_periods[i].replace("\xa0-\xa0","-") for i in range(1,len(policy_premiums_periods),2)]}
 
     return policy_details
 
@@ -77,9 +76,11 @@ def getAllPolicyDetailsDownloadPDF(page, url):
     auth_home_page = getAuthPage(page, url)
 
     # extract policy details from homepage
-    policyDetails = getPolicyDetails(auth_home_page)
+    policyDetailsDict = getPolicyDetails(auth_home_page)
 
-    print(policyDetails)
+    # print(policyDetails)
+    pd.DataFrame(policyDetailsDict).to_csv("policy_details.csv")
+
 
     # # download policy details docs
     # policyDetailsDict = downloadPolicyDetailsPDF(auth_home_page)
