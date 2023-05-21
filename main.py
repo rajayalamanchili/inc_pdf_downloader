@@ -83,10 +83,10 @@ def downloadPdf(auth_home_page, linkName):
     ### click on document link
     with auth_home_page.expect_popup() as documentsPageInfo:
         auth_home_page.get_by_role("header")
-        rowNames = auth_home_page.get_by_role("row").all_inner_texts()
-        linkNames = auth_home_page.get_by_role("row").get_by_label(re.compile("Open", re.IGNORECASE)).all()
-
-        auth_home_page.get_by_role("row", name=rowNames[0]).get_by_role("link", name=linkNames[0].get_attribute("aria-label")).click()
+        rowNames = auth_home_page.get_by_role("row").filter(has_text=re.compile("Effective", re.IGNORECASE)).all_inner_texts()
+        
+        # assuming only one link per row
+        rowNames[0].get_by_role("link").click()
     
     documentsPage = documentsPageInfo.value
 
