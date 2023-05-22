@@ -1,6 +1,7 @@
 import json
 import re
 import os
+from time import sleep
 import pandas as pd
 from playwright.sync_api import sync_playwright, expect
 
@@ -80,54 +81,71 @@ def getPolicyDetails(auth_home_page):
 
 ##########################
 
-def downloadPdf(auth_home_page, linkName, pdfName):
+def downloadPdf(context, auth_home_page, linkName, pdfName):
     
     ### land on polcy document page
     auth_home_page.get_by_role("link", name=linkName).click()
+    
+    # with context.expect_page() as myDocumentsInfo:
+    #     auth_home_page.get_by_role("link", name=linkName).click()
+    
+    # myDocumentsPage = myDocumentsInfo.value
 
     ### wait till page loads
     auth_home_page.get_by_role("button", name="Policy documents").wait_for()
 
     ### click on document link
-    with auth_home_page.expect_popup() as documentsPageInfo:
-        auth_home_page.get_by_role("header")
+    with auth_home_page.expect_popup() as pdfPageInfo:
+        
         rowNames = auth_home_page.get_by_role("row").filter(has_text=re.compile("Effective", re.IGNORECASE)).all()
         
         # assuming only one link per row
         rowNames[0].get_by_role("link").click()
     
-    documentsPage = documentsPageInfo.value
-    documentsPage.get_by_role("button", name="Download").wait_for()
+    pdfPage = pdfPageInfo.value
+    pdfPage.get_by_role("button", name="Download").wait_for()
+
+    ## sleep 10s otherwise download event exceeding timeout
+    sleep(10)
 
     ### download pdf from page
-    with documentsPage.expect_download() as download_info:
-        documentsPage.get_by_role("button", name="Download").click()
+    with pdfPage.expect_download() as downloadInfo:
+        pdfPage.get_by_role("button", name="Download").click()
     
-    download = download_info.value
+    download = downloadInfo.value
+    path = download.path()
 
     ### copy downloaded file to destination folder
     download.save_as(pdfName)
 
+    pdfPage.close()
 
-def downloadPolicyDetailsPDF(auth_home_page, policyDetailsDict):
+    ## back to homepage
+    auth_home_page.get_by_role("menuitem", name="Homepage").click()
+    auth_home_page.get_by_role("heading").filter(has_text=re.compile("Policies", re.IGNORECASE)).wait_for()
+    
+
+
+def downloadPolicyDetailsPDF(context, auth_home_page, policyDetailsDict):
     print("Downloading pdfs .... started")
     documentPageLinks = auth_home_page.get_by_label(re.compile("Get documents", re.IGNORECASE)).all()
+    documentPageLinks = [link.get_attribute("aria-label") for link in documentPageLinks]
 
     totalLinks = len(documentPageLinks)
     for i in range(totalLinks):
-        linkName = documentPageLinks[i].get_attribute("aria-label")
+        linkName = documentPageLinks[i]
         pdfName = (policyDetailsDict["policy_numbers"][i] + ".pdf").replace(" ", "_")
         pdfName = os.path.join(outputDir, pdfName)
 
-        print("\tDownloading pdf {:d}/{:d}".format( i, totalLinks))
-        downloadPdf(auth_home_page, linkName, pdfName)
+        print("\tDownloading pdf {:d}/{:d}".format( i+1, totalLinks))
+        downloadPdf(context, auth_home_page, linkName, pdfName)
     
     print("Downloading pdfs .... done")
    
 
 
 ##########################
-def getAllPolicyDetailsDownloadPDF(page, url):
+def getAllPolicyDetailsDownloadPDF(context, page, url):
 
     # get autheticate page
     auth_home_page = getAuthPage(page, url)
@@ -141,7 +159,7 @@ def getAllPolicyDetailsDownloadPDF(page, url):
 
 
     # download policy details docs
-    policyDetailsDict = downloadPolicyDetailsPDF(auth_home_page, policyDetailsDict)
+    policyDetailsDict = downloadPolicyDetailsPDF(context, auth_home_page, policyDetailsDict)
 
 ##########################
 with sync_playwright() as p:
@@ -150,7 +168,7 @@ with sync_playwright() as p:
     context = browser.new_context(accept_downloads=True)
     page = context.new_page()
 
-    getAllPolicyDetailsDownloadPDF(page, url)
+    getAllPolicyDetailsDownloadPDF(context, page, url)
 
     # ---------------------
     context.close()
