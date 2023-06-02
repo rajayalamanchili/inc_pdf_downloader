@@ -16,5 +16,8 @@ async def main():
 
     provider_obj.extract_save_policy_details()
 
+    # close browser and browser context
+    await provider_obj.close_browser_context()
+
 
 asyncio.run(main())
