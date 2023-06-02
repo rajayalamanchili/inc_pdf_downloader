@@ -105,6 +105,9 @@ async def test_save_policy_data():
 
     assert os.path.exists(provider_obj.policy_details_fname)
 
+    # close browser and browser context
+    await provider_obj.close_browser_context()
+
 
 # test_verify_config_file_contents(test_verify_config_file_exists)
 asyncio.run(test_save_policy_data())

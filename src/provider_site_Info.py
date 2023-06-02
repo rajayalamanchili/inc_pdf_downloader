@@ -1,7 +1,8 @@
-""" Module for provider site related information"""
+""" Module navigate provider site extract info"""
 import os
 import re
 import json
+import errno
 import pandas as pd
 from playwright.async_api import async_playwright
 
@@ -24,9 +25,16 @@ class ProviderSiteInfo:
     def __init__(self, config_file_name: str):
         if self.verify_file_name(config_file_name):
             self.config_file_name = config_file_name
+        else:
+            raise FileNotFoundError(
+                errno.ENOENT, os.strerror(errno.ENOENT), config_file_name
+            )
 
         # read config data from input file
+        print("\tReading configuration file data ... Started")
         self.config_data = self.get_config_file_data()
+
+        print("\tReading configuration file data ... Done")
 
         # create output directory if it doesn't exist
         if not os.path.exists(self.output_dir):
@@ -53,9 +61,13 @@ class ProviderSiteInfo:
     async def set_browser_context(self):
         """method to create browser instance"""
 
+        print("\tCreating browser and browser context ... Started")
+
         playwright_instance = await async_playwright().start()
         self.browser = await playwright_instance.chromium.launch()
         self.browser_context = await self.browser.new_context(accept_downloads=True)
+
+        print("\tCreating browser and browser context ... Done")
 
         return self
 
@@ -66,9 +78,13 @@ class ProviderSiteInfo:
         if self.browser == "" or self.browser_context == "":
             await self.set_browser_context()
 
+        print("\tNavigating to url: ", url)
+
         # navigate to homepage
         page = await self.browser_context.new_page()
         await page.goto(url)
+
+        print("\tNavigating to url ... Done ")
 
         return page
 
@@ -79,6 +95,8 @@ class ProviderSiteInfo:
         homepage_url = self.config_data["settings"]["homepage_url"]
         homepage = await self.get_url_page(homepage_url)
 
+        print("\tLogin to webpage ... Started ")
+
         async with homepage.expect_popup() as lgin_info:
             await homepage.get_by_role("banner").get_by_role(
                 "link", name="Log in"
@@ -87,10 +105,14 @@ class ProviderSiteInfo:
         lgin_page = await lgin_info.value
         await lgin_page.wait_for_load_state("domcontentloaded")
 
+        print("\tLogin to webpage ... Success ")
+
         return lgin_page
 
     async def get_api_data(self, page, api_url):
         """method to capture api data when login button is clicked"""
+
+        print("\tCapturing to api data for: ", api_url)
 
         async with page.expect_response(
             lambda request: api_url in request.url
@@ -102,7 +124,7 @@ class ProviderSiteInfo:
 
         response = await response_info.value
 
-        print(await response.json())
+        print("\tCapturing to api data ... Done")
 
         return await response.json()
 
@@ -128,6 +150,8 @@ class ProviderSiteInfo:
     async def close_browser_context(self):
         """method to close browser instance"""
 
+        print("\tClosing browser and browser context ... Started ")
+
         if self.browser != "" or self.browser_context != "":
             await self.browser_context.close()
             await self.browser.close()
@@ -135,10 +159,14 @@ class ProviderSiteInfo:
         self.browser = ""
         self.browser_context = ""
 
+        print("\tClosing browser and browser context ... Done ")
+
         return self
 
     def extract_save_policy_details(self):
         """save selected policy details to csv file"""
+
+        print("\tExtracting and saving policy details data ... Started ")
 
         json_data = self.policy_details_json
 
@@ -169,3 +197,7 @@ class ProviderSiteInfo:
         }
 
         pd.DataFrame(output_dict).to_csv(self.policy_details_fname, index=False)
+
+        print(
+            "\tExtracted and saved policy details data to: ", self.policy_details_fname
+        )
