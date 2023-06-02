@@ -5,6 +5,8 @@
 
 `source env/bin/activate`
 
+`python3 -m pip install --upgrade pip`
+
 `pip install -r requirements_dev.txt`
 
 `playwright install`
