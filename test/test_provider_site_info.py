@@ -4,9 +4,8 @@ import pytest
 import asyncio
 import validators
 from src.provider_site_Info import ProviderSiteInfo
-from playwright.async_api import async_playwright, expect
+from playwright.async_api import expect
 
-pytest_plugins = ("pytest_asyncio",)
 CONFIG_FILE_NAME = os.path.join(os.getcwd(), "config.json")
 
 
@@ -35,7 +34,7 @@ def test_verify_config_file_contents(test_verify_config_file_exists):
     provider_config_data = provider_obj.config_data
 
     # verify if url fields exists and is valid
-    assert validators.url(provider_config_data["settings"]["url"])
+    assert validators.url(provider_config_data["settings"]["homepage_url"])
 
     # verify secrets available and not empty
     assert validators.url(provider_config_data["secrets"]["usrname"]) != ""
@@ -47,7 +46,7 @@ async def test_browser_homepage():
 
     # create borwser and browser context
     provider_obj = ProviderSiteInfo(CONFIG_FILE_NAME)
-    homepage_url = provider_obj.config_data["settings"]["url"]
+    homepage_url = provider_obj.config_data["settings"]["homepage_url"]
 
     # navigate to homepage
     page = await provider_obj.get_url_page(homepage_url)
@@ -60,7 +59,7 @@ async def test_browser_homepage():
 
 
 async def test_homepage_to_login():
-    """Test to browser instance is created"""
+    """Test to navigate to login from homepage"""
 
     # create borwser and browser context
     provider_obj = ProviderSiteInfo(CONFIG_FILE_NAME)
@@ -68,12 +67,44 @@ async def test_homepage_to_login():
     # navigate to login from homepage
     page = await provider_obj.get_homepage_login_page()
 
-    # verify if home page has correct title
+    # verify if login page has correct url
     await expect(page).to_have_url(re.compile("login.*"))
 
     # close browser and browser context
     await provider_obj.close_browser_context()
 
 
+async def test_get_policy_data():
+    """Test to navigate to login from homepage"""
+
+    # create borwser and browser context
+    provider_obj = ProviderSiteInfo(CONFIG_FILE_NAME)
+
+    # navigate to login from homepage
+    lgin_page = await provider_obj.get_homepage_login_page()
+    await provider_obj.get_policy_data(lgin_page)
+
+    # verify if details are captured
+    print(provider_obj.policy_details_json)
+
+    # close browser and browser context
+    await provider_obj.close_browser_context()
+
+
+async def test_save_policy_data():
+    """Test to navigate to login from homepage"""
+
+    # create borwser and browser context
+    provider_obj = ProviderSiteInfo(CONFIG_FILE_NAME)
+
+    # navigate to login from homepage
+    lgin_page = await provider_obj.get_homepage_login_page()
+    await provider_obj.get_policy_data(lgin_page)
+
+    provider_obj.extract_save_policy_details()
+
+    assert os.path.exists(provider_obj.policy_details_fname)
+
+
 # test_verify_config_file_contents(test_verify_config_file_exists)
-asyncio.run(test_homepage_to_login())
+asyncio.run(test_save_policy_data())
